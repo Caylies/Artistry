@@ -1,0 +1,45 @@
+[project]
+name = "Artistry"
+version = "1.0.0"
+description = "A Ballsdex package designed for managing community-made art."
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Cayla", email = "official.dotzz@gmail.com" },
+]
+readme = "README.md"
+
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.20",
+]
+docs = [
+    "mkdocs-material>=9.7.6",
+]
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+target-version = "py313"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = true
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E203"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ballsdex", "bd_models", "settings"]
+split-on-trailing-comma = false
+
+[project.urls]
+Homepage = "https://caylies.github.io/Artistry/"
+Documentation = "https://caylies.github.io/Artistry/"
+Changelogs = "https://caylies.github.io/Artistry/changelog"
+Funding = "https://ko-fi.com/caylies"

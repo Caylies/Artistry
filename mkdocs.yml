@@ -1,0 +1,59 @@
+site_name: Artistry
+site_author: Cayla
+repo_url: https://github.com/Caylies/Artistry
+repo_name: Caylies/Artistry
+copyright: 'Copyright &copy; 2026 Cayla'
+
+theme:
+  name: material
+  custom_dir: docs/overrides
+
+  logo: assets/logo.png
+  favicon: assets/logo.png
+
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: sunset
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+    - media: "(prefers-color-scheme: dark)"
+      scheme: sunset-dark
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+  icon:
+    repo: fontawesome/brands/github
+
+  features:
+    - content.code.copy
+    - content.code.annotate
+    - content.code.select
+    - toc.follow
+
+nav:
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Settings: getting-started/settings.md
+    - Commands: getting-started/commands.md
+    - Permissions: getting-started/permissions.md
+  - Changelog: changelog.md
+
+markdown_extensions:
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - attr_list
+  - md_in_html
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+
+plugins:
+  - search
+
+extra_css:
+  - stylesheets/extra.css
