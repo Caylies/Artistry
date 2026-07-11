@@ -4,6 +4,7 @@ Artistry has its very own settings. Each setting will be explained below.
 
 - **Spawn art channel** - The forum channel ID for generating spawn art threads in.
 - **Card art channel** - The forum channel ID for generating card art threads in.
+- **Emoji art channel** - The forum channel ID for generating emoji art threads in.
 - **Accepted message** - The content of the message that will be sent to a user once their art gets accepted. If blank, no message will be sent. There are various keywords you can use to enhance your message!
     - `{user}` - A mention of the user.
     - `{accepter}` - A mention of the user who accepted.
