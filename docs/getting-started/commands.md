@@ -6,7 +6,7 @@ Artistry commands will be listed below.
 
 Manually syncs Artistry settings with the package.
 
-### `/artistry generate [art: "Spawn" | "Card"]`
+### `/artistry generate [art: "Spawn" | "Card" | "Emoji"]`
 
 Generates art threads in the configured art forum channels.
 
