@@ -21,6 +21,11 @@ class ArtistrySettings(models.Model):
         help_text="The forum channel ID that will manage card artwork.",
         validators=(RegexValidator(DISCORD_ID_RE, message="Invalid forum channel ID."),),
     )
+    emoji_art_channel = models.TextField(
+        blank=True,
+        help_text="The forum channel ID that will manage emoji artwork.",
+        validators=(RegexValidator(DISCORD_ID_RE, message="Invalid forum channel ID."),),
+    )
 
     accepted_message = models.TextField(
         max_length=256,

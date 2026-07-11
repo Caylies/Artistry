@@ -5,6 +5,7 @@ from typing import Literal, Self
 class SyncType(StrEnum):
     Spawn = "Spawn"
     Card = "Card"
+    Emoji = "Emoji"
     Settings = "Settings"
     All = "All"
 
@@ -23,7 +24,14 @@ class SyncType(StrEnum):
 class ArtType(StrEnum):
     Spawn = "Spawn"
     Card = "Card"
+    Emoji = "Emoji"
 
     @property
-    def attribute(self) -> Literal["wild_card", "collection_card"]:
-        return "wild_card" if self == ArtType.Spawn else "collection_card"
+    def attribute(self) -> Literal["wild_card", "collection_card", "emoji_id"]:
+        match self:
+            case ArtType.Spawn:
+                return "wild_card"
+            case ArtType.Card:
+                return "collection_card"
+            case ArtType.Emoji:
+                return "emoji_id"

@@ -1,5 +1,6 @@
 import contextlib
 import logging
+from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -18,7 +19,7 @@ from settings.models import settings as bd_settings
 from ..models import get_settings
 from .core.enums import ArtType, SyncType
 from .core.thread import ThreadGroup, update_ball_thread
-from .core.utils import format_ball_filename
+from .core.utils import format_ball_filename, sanitize_ball_emoji_name
 from .core.views import GeneratingView, SyncingSettingsView
 
 log = logging.getLogger("artistry.package.cog")
@@ -80,18 +81,38 @@ class Artistry(commands.GroupCog):
 
         ball = await Ball.objects.aget_or_none(country=channel.name)
 
-        if parent_id not in (settings.spawn_art_channel, settings.card_art_channel) or not ball:
+        if (
+            parent_id not in (settings.spawn_art_channel, settings.card_art_channel, settings.emoji_art_channel)
+            or not ball
+        ):
             await interaction.followup.send(
                 f"You can only accept messages posted in a {bd_settings.collectible_name}'s thread.", ephemeral=True
             )
             return
 
-        art_type = ArtType["Spawn" if parent_id == settings.spawn_art_channel else "Card"]
+        art_type = self.get_art_type(settings, parent_id)
         attachment = message.attachments[0]
 
-        setattr(ball, art_type.attribute, ContentFile(await attachment.read(), attachment.filename))
+        if art_type == ArtType.Emoji:
+            old_emoji = self.bot.get_emoji(ball.emoji_id)
+            if old_emoji is not None:
+                await old_emoji.delete()
+
+            try:
+                emoji = await self.bot.create_application_emoji(
+                    name=sanitize_ball_emoji_name(ball.country), image=await attachment.read()
+                )
+            except discord.HTTPException:
+                log.exception("An error occurred while trying to accept a new emoji art.")
+                await interaction.followup.send("An error occurred while trying to accept a new emoji art.")
+                return
+            else:
+                setattr(ball, art_type.attribute, emoji.id)
+        else:
+            setattr(ball, art_type.attribute, ContentFile(await attachment.read(), attachment.filename))
 
         await ball.asave(update_fields=(art_type.attribute,))
+        await self.bot.load_cache()
 
         if settings.accepted_message != "":
             with contextlib.suppress(discord.Forbidden):
@@ -112,7 +133,7 @@ class Artistry(commands.GroupCog):
         if settings.accepted_emoji != "":
             await message.add_reaction(settings.accepted_emoji)
 
-        await update_ball_thread(art_type, channel)
+        await update_ball_thread(self.bot, art_type, channel)
 
         await interaction.followup.send(
             f"Accepted **{ball.country}** {art_type.value.lower()} art from {message.author.mention}!", ephemeral=True
@@ -127,7 +148,7 @@ class Artistry(commands.GroupCog):
     @checks.app_check(checks.has_permissions("artistry.can_generate"))
     async def generate(self, interaction: discord.Interaction["BallsDexBot"], art: ArtType):
         """
-        Generates and maintains threads for the specified art type (Spawn or Card)
+        Generates and maintains threads for the specified art type (Spawn, Card or Emoji)
         by deleting invalid threads and creating any that are missing.
 
         Parameters
@@ -175,6 +196,10 @@ class Artistry(commands.GroupCog):
                 channel = await self.bot.fetch_channel(int(settings.card_art_channel))
                 threads = self.thread_group.card_threads
 
+            case ArtType.Emoji:
+                channel = await self.bot.fetch_channel(int(settings.emoji_art_channel))
+                threads = self.thread_group.card_threads
+
             case _:
                 return
 
@@ -197,12 +222,28 @@ class Artistry(commands.GroupCog):
             await thread.delete()
 
         for country, media in ball_dict.items():
-            thread = await channel.create_thread(
-                name=country,
-                file=discord.File(f"media/{media}", filename=format_ball_filename(country, Path(media).suffix)),
-            )
+            if art == ArtType.Emoji:
+                emoji = self.bot.get_emoji(media)  # type: ignore
+                if emoji is None:
+                    continue
 
-            await thread.message.pin()
+                data = await emoji.read()
+
+                thread = await channel.create_thread(
+                    name=country,
+                    file=discord.File(
+                        BytesIO(data), filename=format_ball_filename(country, ".gif" if emoji.animated else ".png")
+                    ),
+                )
+
+                await thread.message.pin()
+            else:
+                thread = await channel.create_thread(
+                    name=country,
+                    file=discord.File(f"media/{media}", filename=format_ball_filename(country, Path(media).suffix)),
+                )
+
+                await thread.message.pin()
 
         plural = "" if len(ball_dict) == 1 else "s"
 
@@ -229,3 +270,14 @@ class Artistry(commands.GroupCog):
         await interaction.response.defer(ephemeral=True, thinking=True)
         await self._sync(SyncType.Settings)
         await interaction.followup.send("Synced Artistry settings!", ephemeral=True)
+
+    def get_art_type(self, settings, parent_id: str) -> ArtType:
+        match parent_id:
+            case settings.spawn_art_channel:
+                return ArtType.Spawn
+            case settings.card_art_channel:
+                return ArtType.Card
+            case settings.emoji_art_channel:
+                return ArtType.Emoji
+            case _:
+                return ArtType.Spawn

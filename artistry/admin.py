@@ -15,7 +15,7 @@ class ArtistrySettingsAdmin(admin.ModelAdmin):
     save_on_top = True
     formfield_overrides = {models.TextField: {"widget": widgets.TextInput}}
     fieldsets = [
-        (None, {"fields": ("spawn_art_channel", "card_art_channel")}),
+        (None, {"fields": ("spawn_art_channel", "card_art_channel", "emoji_art_channel")}),
         ("Personalization", {"fields": ("accepted_message", "accepted_emoji")}),
         ("Thread management", {"fields": ("safe_thread_ids",)}),
     ]
