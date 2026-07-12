@@ -2,7 +2,7 @@
 
 Artistry changes will be documented on this page.
 
-## [Unreleased]
+## [1.1.0] - 2026-12-07
 
 ### Added
 
@@ -12,7 +12,7 @@ Artistry changes will be documented on this page.
     - When two or more art channels have the same ID value during generation.
     - When attempting to accept an art thread's starter message.
 
-### Changes
+### Changed
 
 - Increased the max length of *Accepted Message* (256 -> 2,000).
 - Increase the text input area for *Accept Message* and *Safe Thread IDs* settings.
@@ -27,6 +27,6 @@ Artistry changes will be documented on this page.
 
 - Removed `/artistry sync` in favor of automatic syncing.
 
-## [1.0.0] - 2026-10-7
+## [1.0.0] - 2026-10-07
 
 - Initial Artistry release.
