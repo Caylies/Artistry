@@ -14,6 +14,6 @@ Artistry has its very own settings. Each setting will be explained below.
     - `{bot}` - The name of the bot configured in your bot's settings.
     - `{ball}` - The ball's name.
     - `{emoji}` - The ball's emoji.
-    - `{art_type}` - The art type (spawn or card).
+    - `{art_type}` - The art type (spawn, card, or emoji).
 - **Accepted emoji** - The reaction emoji used on a message that got accepted. If blank, no reaction will be added.
 - **Safe thread ids** - A list of thread IDs that will be excluded from deletion when generation occurs.

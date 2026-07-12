@@ -28,7 +28,7 @@ class ArtistrySettings(models.Model):
     )
 
     accepted_message = models.TextField(
-        max_length=256,
+        max_length=2000,
         blank=True,
         help_text=(
             "The message that will be sent to a user through DMs when their art is accepted. "
@@ -59,6 +59,10 @@ class ArtistrySettings(models.Model):
     class Meta:
         verbose_name_plural = "Settings"
         permissions = [("can_generate", "Can generate art threads."), ("can_accept", "Can accept art submissions.")]
+
+    @property
+    def art_channels(self):
+        return (self.spawn_art_channel, self.card_art_channel, self.emoji_art_channel)
 
     def save(self, *args, **kwargs) -> None:
         def lower_safe_threads(thread_ids: str) -> str:
