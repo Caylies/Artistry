@@ -17,10 +17,10 @@ from bd_models.models import Ball
 from settings.models import settings as bd_settings
 
 from ..models import get_settings
-from .core.enums import ArtType, SyncType
-from .core.thread import ThreadGroup, update_ball_thread
+from .core.enums import ArtType
+from .core.thread import fetch_threads_from_art_channel, update_ball_thread
 from .core.utils import format_ball_filename, sanitize_ball_emoji_name
-from .core.views import GeneratingView, SyncingSettingsView
+from .core.views import GeneratingView
 
 log = logging.getLogger("artistry.package.cog")
 
@@ -30,24 +30,12 @@ class Artistry(commands.GroupCog):
     Artistry package commands.
     """
 
-    def __init__(self, bot: "BallsDexBot", thread_group: ThreadGroup):
+    def __init__(self, bot: "BallsDexBot"):
         self.bot = bot
-        self.thread_group = thread_group
-        self.syncing = False
         self.generating = False
 
         self.accept_art_menu = app_commands.ContextMenu(name="Accept Art", callback=self.accept_art)
-
         self.bot.tree.add_command(self.accept_art_menu)
-
-    async def _sync(self, focus: SyncType = SyncType.All):
-        self.syncing = True
-        await self.thread_group.sync(focus=focus)
-        self.syncing = False
-
-    async def cog_command_error(self, ctx: commands.Context, error: Exception):
-        self.syncing = False
-        self.generating = False
 
     async def accept_art(self, interaction: discord.Interaction["BallsDexBot"], message: discord.Message):
         ctx = await commands.Context.from_interaction(interaction)
@@ -57,6 +45,10 @@ class Artistry(commands.GroupCog):
             return
 
         channel = interaction.channel
+
+        if message.id == channel.id:
+            await interaction.response.send_message("You cannot accept the thread's starter message.", ephemeral=True)
+            return
 
         if not isinstance(channel, discord.Thread) or not channel.parent:
             await interaction.response.send_message(
@@ -70,10 +62,6 @@ class Artistry(commands.GroupCog):
             )
             return
 
-        if self.syncing:
-            await interaction.response.send_message("This command cannot be used while syncing.", ephemeral=True)
-            return
-
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         settings = await get_settings()
@@ -81,20 +69,18 @@ class Artistry(commands.GroupCog):
 
         ball = await Ball.objects.aget_or_none(country=channel.name)
 
-        if (
-            parent_id not in (settings.spawn_art_channel, settings.card_art_channel, settings.emoji_art_channel)
-            or not ball
-        ):
+        if parent_id not in settings.art_channels or not ball:
             await interaction.followup.send(
                 f"You can only accept messages posted in a {bd_settings.collectible_name}'s thread.", ephemeral=True
             )
             return
 
-        art_type = self.get_art_type(settings, parent_id)
+        art_type = ArtType.from_settings(settings, parent_id)
         attachment = message.attachments[0]
 
         if art_type == ArtType.Emoji:
             old_emoji = self.bot.get_emoji(ball.emoji_id)
+
             if old_emoji is not None:
                 await old_emoji.delete()
 
@@ -115,7 +101,7 @@ class Artistry(commands.GroupCog):
         await self.bot.load_cache()
 
         if settings.accepted_message != "":
-            with contextlib.suppress(discord.Forbidden):
+            with contextlib.suppress(discord.Forbidden, discord.HTTPException):
                 await message.author.send(
                     settings.accepted_message.format(
                         user=message.author.mention,
@@ -148,8 +134,8 @@ class Artistry(commands.GroupCog):
     @checks.app_check(checks.has_permissions("artistry.can_generate"))
     async def generate(self, interaction: discord.Interaction["BallsDexBot"], art: ArtType):
         """
-        Generates and maintains threads for the specified art type (Spawn, Card or Emoji)
-        by deleting invalid threads and creating any that are missing.
+        Generates and maintains threads for the specified art type by deleting invalid threads
+        and creating any that are missing.
 
         Parameters
         ----------
@@ -164,120 +150,73 @@ class Artistry(commands.GroupCog):
 
         self.generating = True
 
-        if self.syncing:
-            await interaction.response.send_message("This command cannot be used while syncing.", ephemeral=True)
-            return
+        try:
+            settings = await get_settings()
 
-        await interaction.response.defer(thinking=True)
-
-        settings = await get_settings()
-        original = None
-
-        if not self.thread_group.in_sync(settings):
-            original = cast(discord.Message | None, await interaction.followup.send(view=SyncingSettingsView()))
-            await self._sync(SyncType.Settings)
-
-        await self._sync(SyncType[art.value])
-
-        if original:
-            await original.edit(view=GeneratingView())
-
-        message = original or cast(discord.Message | None, await interaction.followup.send(view=GeneratingView()))
-
-        channel = None
-        threads = None
-
-        match art:
-            case ArtType.Spawn:
-                channel = await self.bot.fetch_channel(int(settings.spawn_art_channel))
-                threads = self.thread_group.spawn_threads
-
-            case ArtType.Card:
-                channel = await self.bot.fetch_channel(int(settings.card_art_channel))
-                threads = self.thread_group.card_threads
-
-            case ArtType.Emoji:
-                channel = await self.bot.fetch_channel(int(settings.emoji_art_channel))
-                threads = self.thread_group.card_threads
-
-            case _:
+            if len(set(settings.art_channels)) != len(settings.art_channels):
+                await interaction.response.send_message(
+                    "Configured art channels cannot share the same ID.", ephemeral=True
+                )
                 return
 
-        channel = cast(discord.ForumChannel, channel)
-        ball_dict: dict[str, str] = {}
-        safe_names: list[str] = []
+            await interaction.response.defer(thinking=True)
 
-        async for country, media in Ball.objects.filter(enabled=True).values_list("country", art.attribute):
-            if any([thread.name == country for thread in threads]):
-                safe_names.append(country)
-                continue
+            message = cast(discord.Message | None, await interaction.followup.send(view=GeneratingView()))
+            channel = cast(discord.ForumChannel, await self.bot.fetch_channel(art.get_channel_id(settings)))
 
-            ball_dict[country] = media
+            threads = await fetch_threads_from_art_channel(self.bot, art, settings)
 
-        safe_threads = settings.safe_thread_ids.split(";")
+            ball_dict: dict[str, str] = {}
+            safe_names: list[str] = []
 
-        for thread in [
-            thread for thread in threads if thread.name not in safe_names and str(thread.id) not in safe_threads
-        ]:
-            await thread.delete()
-
-        for country, media in ball_dict.items():
-            if art == ArtType.Emoji:
-                emoji = self.bot.get_emoji(media)  # type: ignore
-                if emoji is None:
+            async for country, media in Ball.objects.filter(enabled=True).values_list("country", art.attribute):
+                if any([thread.name == country for thread in threads]):
+                    safe_names.append(country)
                     continue
 
-                data = await emoji.read()
+                ball_dict[country] = media
 
-                thread = await channel.create_thread(
-                    name=country,
-                    file=discord.File(
-                        BytesIO(data), filename=format_ball_filename(country, ".gif" if emoji.animated else ".png")
-                    ),
-                )
+            safe_threads = settings.safe_thread_ids.split(";")
 
-                await thread.message.pin()
-            else:
-                thread = await channel.create_thread(
-                    name=country,
-                    file=discord.File(f"media/{media}", filename=format_ball_filename(country, Path(media).suffix)),
-                )
+            for thread in [
+                thread for thread in threads if thread.name not in safe_names and str(thread.id) not in safe_threads
+            ]:
+                await thread.delete()
 
-                await thread.message.pin()
+            for country, media in ball_dict.items():
+                if art == ArtType.Emoji:
+                    emoji = self.bot.get_emoji(media)
 
-        plural = "" if len(ball_dict) == 1 else "s"
+                    if emoji is None:
+                        continue
 
-        if message:
-            await message.reply(f"Generated **{len(ball_dict):,}** {art.lower()} art thread{plural}!")
+                    thread = await channel.create_thread(
+                        name=country,
+                        file=discord.File(
+                            BytesIO(await emoji.read()),
+                            filename=format_ball_filename(country, ".gif" if emoji.animated else ".png"),
+                        ),
+                    )
 
-        self.generating = False
+                    await thread.message.pin()
+                else:
+                    thread = await channel.create_thread(
+                        name=country,
+                        file=discord.File(f"media/{media}", filename=format_ball_filename(country, Path(media).suffix)),
+                    )
 
-        log.info(
-            f"{interaction.user} generated {len(ball_dict):,} {art.value.lower()} art thread{plural}",
-            extra={"webhook": True},
-        )
+                    await thread.message.pin()
 
-    @app_commands.command()
-    @checks.app_check(checks.is_staff())
-    async def sync(self, interaction: discord.Interaction["BallsDexBot"]):
-        """
-        Syncs Artistry settings.
-        """
-        if self.syncing:
-            await interaction.response.send_message("This command cannot be used while syncing.", ephemeral=True)
-            return
+            self.generating = False
 
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        await self._sync(SyncType.Settings)
-        await interaction.followup.send("Synced Artistry settings!", ephemeral=True)
+            plural = "" if len(ball_dict) == 1 else "s"
 
-    def get_art_type(self, settings, parent_id: str) -> ArtType:
-        match parent_id:
-            case settings.spawn_art_channel:
-                return ArtType.Spawn
-            case settings.card_art_channel:
-                return ArtType.Card
-            case settings.emoji_art_channel:
-                return ArtType.Emoji
-            case _:
-                return ArtType.Spawn
+            if message:
+                await message.reply(f"Generated **{len(ball_dict):,}** {art.lower()} art thread{plural}!")
+
+            log.info(
+                f"{interaction.user} generated {len(ball_dict):,} {art.value.lower()} art thread{plural}",
+                extra={"webhook": True},
+            )
+        finally:
+            self.generating = False

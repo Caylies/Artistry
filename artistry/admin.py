@@ -20,6 +20,12 @@ class ArtistrySettingsAdmin(admin.ModelAdmin):
         ("Thread management", {"fields": ("safe_thread_ids",)}),
     ]
 
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name in ("accepted_message", "safe_thread_ids"):
+            kwargs["widget"] = widgets.Textarea
+
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
     def has_add_permission(self, request: "HttpRequest") -> bool:
         return super().has_add_permission(request) and ArtistrySettings.objects.first() is None
 
