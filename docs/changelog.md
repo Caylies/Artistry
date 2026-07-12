@@ -21,7 +21,7 @@ Artistry changes will be documented on this page.
 
 ### Fixed
 
-- Fixed the `/artistry generate` command becoming unusable if an error occured.
+- Fixed the `/artistry generate` command becoming unusable if an error occurred.
 
 ### Removed
 
