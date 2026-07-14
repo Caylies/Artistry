@@ -2,7 +2,15 @@
 
 Artistry changes will be documented on this page.
 
-## [1.1.0] - 2026-12-07
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Changed
+
+- Improved the Artistry website in terms of UI and documentation.
+
+## [1.1.0] - 2026-07-12
 
 ### Added
 
@@ -19,14 +27,14 @@ Artistry changes will be documented on this page.
 - Minor changes to the generation view description.
 - Refactored codebase.
 
-### Fixed
-
-- Fixed the `/artistry generate` command becoming unusable if an error occurred.
-
 ### Removed
 
 - Removed `/artistry sync` in favor of automatic syncing.
 
-## [1.0.0] - 2026-10-07
+### Fixed
+
+- Fixed the `/artistry generate` command becoming unusable if an error occurred.
+
+## [1.0.0] - 2026-07-10
 
 - Initial Artistry release.

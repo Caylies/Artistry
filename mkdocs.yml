@@ -31,20 +31,23 @@ theme:
     - content.code.copy
     - content.code.annotate
     - content.code.select
+    - navigation.footer
     - toc.follow
 
 nav:
   - Getting Started:
-    - Installation: getting-started/installation.md
-    - Settings: getting-started/settings.md
-    - Commands: getting-started/commands.md
+    - What is Artistry?: getting-started/about.md
+    - Configuration: getting-started/configuration.md
     - Permissions: getting-started/permissions.md
+    - Generation: getting-started/generation.md
+    - Accepting Art: getting-started/accepting.md
   - Changelog: changelog.md
 
 markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+  - markdown_grid_tables
   - attr_list
   - md_in_html
   - pymdownx.tabbed:
