@@ -46,14 +46,14 @@ class Artistry(commands.GroupCog):
 
         channel = interaction.channel
 
-        if message.id == channel.id:
-            await interaction.response.send_message("You cannot accept the thread's starter message.", ephemeral=True)
-            return
-
         if not isinstance(channel, discord.Thread) or not channel.parent:
             await interaction.response.send_message(
                 f"You can only accept messages posted in a {bd_settings.collectible_name}'s thread.", ephemeral=True
             )
+            return
+
+        if message.id == channel.id:
+            await interaction.response.send_message("You cannot accept the thread's starter message.", ephemeral=True)
             return
 
         if not message.attachments:
