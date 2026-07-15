@@ -153,7 +153,9 @@ class Artistry(commands.GroupCog):
         try:
             settings = await get_settings()
 
-            if len(set(settings.art_channels)) != len(settings.art_channels):
+            non_blank_channels = [channel for channel in settings.art_channels if channel]
+
+            if len(set(non_blank_channels)) != len(non_blank_channels):
                 await interaction.response.send_message(
                     "Configured art channels cannot share the same ID.", ephemeral=True
                 )

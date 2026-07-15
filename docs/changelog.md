@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Improved the Artistry website in terms of UI and documentation.
 
+### Fixed
+
+- Fixed generation failing when two channel IDs are blank.
+- Fixed the Artistry name in `pyproject.toml` being title-cased.
+
 ## [1.1.0] - 2026-07-12
 
 ### Added
