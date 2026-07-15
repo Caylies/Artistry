@@ -8,7 +8,7 @@ Artistry can be installed by adding the following code into your `config/extra.t
 
 ```toml
 [[ballsdex.packages]]
-location = "git+https://github.com/Caylies/Artistry.git@1.1.0"
+location = "git+https://github.com/Caylies/Artistry.git@1.1.1"
 path = "artistry"
 enabled = true
 ```
