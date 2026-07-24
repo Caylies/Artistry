@@ -17,4 +17,4 @@
 
 ## Getting Started
 
-Read the [Getting Started](https://caylies.github.io/Artistry/getting-started/installation) course on the Artistry website for more information.
+Read the [Getting Started](https://caylies.github.io/Artistry/getting-started/about/) course on the Artistry website for more information.
