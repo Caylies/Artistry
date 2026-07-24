@@ -1,0 +1,20 @@
+{% extends "main.html" %}
+
+{% block tabs %}
+{% block footer %}{% endblock %}
+{{ super() }}
+
+<style>
+  .md-header { position: initial }
+  .md-main { display: none }
+</style>
+
+<section class="mdx-hero" style="flex-grow: 1;">
+  <div class="mdx-hero__inner">
+    <img src="{{ 'assets/logo.png' | url }}" alt="{{ config.site_name }} logo" class="mdx-hero__logo">
+    <h1 class="mdx-hero__title">{{ config.site_name }}</h1>
+    <p class="mdx-hero__subtitle">A Ballsdex package designed for managing community-made art.</p>
+    <a href="getting-started/about" class="md-button md-button--primary mdx-hero__button">Get Started</a>
+  </div>
+</section>
+{% endblock %}
